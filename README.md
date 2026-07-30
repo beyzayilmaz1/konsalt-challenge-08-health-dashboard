@@ -54,7 +54,8 @@ Tarayıcı: http://localhost:8501
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
 > Yeni servis eklemek için `hedefler.json` dosyasına obje eklemeniz yeterli — kod değişmez.
 
-Sağlık kurallarının gerekçesi: [SAGLIK_KURALLARI.md](SAGLIK_KURALLARI.md)
+Sağlık kurallarının gerekçesi: [SAGLIK_KURALLARI.md](SAGLIK_KURALLARI.md)  
+Yönetici teslim raporu: [TESLIM_RAPORU.md](TESLIM_RAPORU.md)
 
 ## Doğrulama
 
@@ -82,6 +83,7 @@ Dashboard Mini Envanter kartında **🟡 YAVAS** görünmeli (~2000 ms).
 | `health_check.py` | check / tarihçe / alarm / uptime |
 | `hedefler.json` | İzlenecek hedefler |
 | `SAGLIK_KURALLARI.md` | Neden 1 sn? Neden YAVAS ayrı? |
+| `TESLIM_RAPORU.md` | Yönetici teslim raporu |
 | `README.md` | Bu kılavuz |
 | `screenshots/` | Normal + alarmlı ekran görüntüleri |
 | `tests/` | Birim testleri |
