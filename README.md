@@ -85,6 +85,7 @@ Dashboard Mini Envanter kartında **🟡 YAVAS** görünmeli (~2000 ms).
 | `README.md` | Bu kılavuz |
 | `screenshots/` | Normal + alarmlı ekran görüntüleri |
 | `tests/` | Birim testleri |
+| `.github/workflows/ci.yml` | Otomatik test (GitHub Actions) |
 | `requirements.txt` | Bağımlılıklar |
 
 ## Testler
@@ -92,3 +93,5 @@ Dashboard Mini Envanter kartında **🟡 YAVAS** görünmeli (~2000 ms).
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+Push / PR sonrası GitHub Actions aynı komutu çalıştırır: `.github/workflows/ci.yml`
