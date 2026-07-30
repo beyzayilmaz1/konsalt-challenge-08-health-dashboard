@@ -20,10 +20,20 @@ Birden fazla servisi periyodik kontrol eden mini NOC (health-check) dashboard'u.
 pip install -r requirements.txt
 ```
 
+## Çalıştırma
+
+```bash
+python -m streamlit run dashboard.py
+```
+
+Tarayıcı açılır: http://localhost:8501
+
+> Challenge 6 API ayaktaysa Mini Envanter kartı 🟢 olur; kapalıysa ⚫ ULASILAMIYOR.
+
 ## İlerleme
 
 - [x] Görev 1: `check()` health check fonksiyonu
-- [ ] Görev 2: Streamlit durum kartları
+- [x] Görev 2: Streamlit durum kartları
 - [ ] Görev 3: Tarihçe + çizgi grafik
 - [ ] Görev 4: Otomatik yenileme + alarm
 - [ ] Bonus: hedefler.json, uptime, YAVAS yakalama
