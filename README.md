@@ -84,4 +84,11 @@ Dashboard Mini Envanter kartında **🟡 YAVAS** görünmeli (~2000 ms).
 | `SAGLIK_KURALLARI.md` | Neden 1 sn? Neden YAVAS ayrı? |
 | `README.md` | Bu kılavuz |
 | `screenshots/` | Normal + alarmlı ekran görüntüleri |
+| `tests/` | Birim testleri |
 | `requirements.txt` | Bağımlılıklar |
+
+## Testler
+
+```bash
+python -m unittest discover -s tests -v
+```
