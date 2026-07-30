@@ -43,6 +43,22 @@ class MetrikTestleri(unittest.TestCase):
     def test_uptime_bos(self) -> None:
         self.assertIsNone(uptime_yuzde("API", dosya=self.dosya))
 
+    def test_operasyon_ozeti(self) -> None:
+        from health_check import operasyon_ozeti
+
+        ozet = operasyon_ozeti(
+            [
+                {"ad": "A", "durum": "SAGLIKLI", "sure_ms": 100},
+                {"ad": "B", "durum": "YAVAS", "sure_ms": 1500},
+                {"ad": "C", "durum": "ULASILAMIYOR", "sure_ms": None},
+            ]
+        )
+        self.assertEqual(ozet["toplam"], 3)
+        self.assertEqual(ozet["dagilim"]["SAGLIKLI"], 1)
+        self.assertEqual(ozet["dagilim"]["YAVAS"], 1)
+        self.assertEqual(ozet["dagilim"]["ULASILAMIYOR"], 1)
+        self.assertEqual(ozet["ortalama_ms"], 800.0)
+
 
 if __name__ == "__main__":
     unittest.main()

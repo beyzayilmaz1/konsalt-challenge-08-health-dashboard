@@ -1,4 +1,4 @@
-"""Sağlık Dashboard'u — Challenge 8: kartlar, tarihçe, otomatik yenileme, alarm."""
+"""Sağlık Dashboard'u — Challenge 8: kartlar, özet, tarihçe, alarm, incident log."""
 
 import json
 import time
@@ -8,7 +8,15 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from health_check import alarm_var, check, kaydet, tarihce_oku, uptime_yuzde
+from health_check import (
+    alarm_var,
+    check,
+    incident_log,
+    kaydet,
+    operasyon_ozeti,
+    tarihce_oku,
+    uptime_yuzde,
+)
 
 HEDEFLER_DOSYASI = Path("hedefler.json")
 
@@ -44,6 +52,7 @@ with st.sidebar:
 kontrol_saati = datetime.now().strftime("%H:%M:%S")
 st.write(f"Son kontrol: **{kontrol_saati}**")
 
+anlik_sonuclar: list[dict] = []
 sutunlar = st.columns(len(HEDEFLER))
 
 for sutun, hedef in zip(sutunlar, HEDEFLER):
@@ -51,6 +60,9 @@ for sutun, hedef in zip(sutunlar, HEDEFLER):
     kaydet(hedef["ad"], sonuc)
     alarm = alarm_var(hedef["ad"])
     uptime = uptime_yuzde(hedef["ad"])
+    anlik_sonuclar.append(
+        {"ad": hedef["ad"], "durum": sonuc["durum"], "sure_ms": sonuc["sure_ms"]}
+    )
 
     ikon = DURUM_IKON.get(sonuc["durum"], "❓")
     sure = sonuc["sure_ms"]
@@ -66,6 +78,19 @@ for sutun, hedef in zip(sutunlar, HEDEFLER):
         st.metric(label="Uptime (son 100)", value=uptime_yazi)
         kod = sonuc["kod"]
         st.caption(f"HTTP: {kod if kod is not None else 'yok'} · {kontrol_saati}")
+
+# Operasyon özeti
+ozet = operasyon_ozeti(anlik_sonuclar)
+st.divider()
+st.subheader("Operasyon özeti")
+o1, o2, o3, o4, o5, o6 = st.columns(6)
+o1.metric("Servis", ozet["toplam"])
+o2.metric("🟢 SAGLIKLI", ozet["dagilim"]["SAGLIKLI"])
+o3.metric("🟡 YAVAS", ozet["dagilim"]["YAVAS"])
+o4.metric("🔴 HATALI", ozet["dagilim"]["HATALI"])
+o5.metric("⚫ ULASILAMIYOR", ozet["dagilim"]["ULASILAMIYOR"])
+ort = ozet["ortalama_ms"]
+o6.metric("Ort. süre", f"{ort} ms" if ort is not None else "—")
 
 st.divider()
 st.subheader("Yanıt süresi tarihçesi")
@@ -88,7 +113,15 @@ else:
                 cizim = hedef_df[["zaman", "sure_ms"]].dropna().set_index("zaman")
                 st.line_chart(cizim)
 
-# Görev 4: 30 sn'de bir kendini yenile
+# Incident Log
+st.divider()
+st.subheader("Incident Log")
+incidents = incident_log()
+if not incidents:
+    st.success("Sağlıksız olay yok.")
+else:
+    st.dataframe(pd.DataFrame(incidents), use_container_width=True, hide_index=True)
+
 if otomatik:
     st.caption(f"Otomatik yenileme açık — {YENILEME_SN} sn sonra tekrar kontrol edilecek.")
     time.sleep(YENILEME_SN)

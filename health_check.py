@@ -85,3 +85,50 @@ def uptime_yuzde(hedef: str, pencere: int = 100, dosya: Path = TARIHCE_DOSYASI) 
     sonlar = kayitlar[-pencere:]
     saglikli = sum(1 for k in sonlar if k.get("durum") == "SAGLIKLI")
     return round(100.0 * saglikli / len(sonlar), 1)
+
+
+def operasyon_ozeti(anlik: list[dict]) -> dict:
+    """Anlık kart sonuçlarından özet metrikler üretir.
+
+    anlik: [{"ad": ..., "durum": ..., "sure_ms": ...}, ...]
+    """
+    dagilim = {"SAGLIKLI": 0, "YAVAS": 0, "HATALI": 0, "ULASILAMIYOR": 0}
+    sureler: list[float] = []
+    for kayit in anlik:
+        durum = kayit.get("durum")
+        if durum in dagilim:
+            dagilim[durum] += 1
+        sure = kayit.get("sure_ms")
+        if sure is not None:
+            sureler.append(float(sure))
+    return {
+        "toplam": len(anlik),
+        "dagilim": dagilim,
+        "ortalama_ms": round(sum(sureler) / len(sureler), 1) if sureler else None,
+    }
+
+
+def incident_log(limit: int = 50, dosya: Path = TARIHCE_DOSYASI) -> list[dict]:
+    """SAGLIKLI olmayan kayıtları (yeniden eskiye) listeler.
+
+    Aynı hedef üst üste 3 ULASILAMIYOR olduğunda etiket ALARM olur.
+    """
+    kayitlar = tarihce_oku(dosya)
+    sagliksiz = [k for k in kayitlar if k.get("durum") != "SAGLIKLI"]
+    sagliksiz = list(reversed(sagliksiz[-limit:]))
+
+    sonuc: list[dict] = []
+    for kayit in sagliksiz:
+        hedef = kayit.get("hedef", "")
+        etiket = "ALARM" if alarm_var(hedef, dosya=dosya) and kayit.get("durum") == "ULASILAMIYOR" else kayit.get("durum")
+        sonuc.append(
+            {
+                "zaman": kayit.get("zaman"),
+                "hedef": hedef,
+                "etiket": etiket,
+                "durum": kayit.get("durum"),
+                "sure_ms": kayit.get("sure_ms") or "—",
+                "kod": kayit.get("kod") or "—",
+            }
+        )
+    return sonuc

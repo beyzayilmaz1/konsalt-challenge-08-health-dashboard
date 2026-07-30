@@ -50,6 +50,8 @@ Tarayıcı: http://localhost:8501
 - [x] Bonus: uptime % (son 100 kontrol)
 - [x] Bonus: YAVAS yakalama (Challenge 6 gecikmesi)
 - [x] Teslim: SAGLIK_KURALLARI.md + screenshots/
+- [x] Ek: Operasyon özeti + Incident Log
+- [x] Ek: Birim testleri + GitHub Actions CI
 
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
 > Yeni servis eklemek için `hedefler.json` dosyasına obje eklemeniz yeterli — kod değişmez.
