@@ -1,11 +1,12 @@
-"""Sağlık Dashboard'u — Challenge 8: kartlar + tarihçe grafikleri."""
+"""Sağlık Dashboard'u — Challenge 8: kartlar, tarihçe, otomatik yenileme, alarm."""
 
+import time
 from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
-from health_check import check, kaydet, tarihce_oku
+from health_check import alarm_var, check, kaydet, tarihce_oku
 
 HEDEFLER = [
     {"ad": "Mini Envanter API", "url": "http://127.0.0.1:8000/health"},
@@ -24,13 +25,18 @@ DURUM_IKON = {
     "ULASILAMIYOR": "⚫",
 }
 
+YENILEME_SN = 30
+
 
 st.set_page_config(page_title="Sağlık Dashboard", page_icon="💚", layout="wide")
 st.title("Sağlık Dashboard'u")
 st.caption("Mini NOC — servis health check ekranı")
 
-if st.button("Şimdi Yenile", type="primary"):
-    st.rerun()
+with st.sidebar:
+    st.header("Ayarlar")
+    otomatik = st.toggle("Otomatik yenileme (30 sn)", value=True)
+    if st.button("Şimdi Yenile", type="primary"):
+        st.rerun()
 
 kontrol_saati = datetime.now().strftime("%H:%M:%S")
 st.write(f"Son kontrol: **{kontrol_saati}**")
@@ -40,19 +46,21 @@ sutunlar = st.columns(len(HEDEFLER))
 for sutun, hedef in zip(sutunlar, HEDEFLER):
     sonuc = check(hedef["url"])
     kaydet(hedef["ad"], sonuc)
+    alarm = alarm_var(hedef["ad"])
 
     ikon = DURUM_IKON.get(sonuc["durum"], "❓")
     sure = sonuc["sure_ms"]
     sure_yazi = f"{sure} ms" if sure is not None else "—"
 
     with sutun:
+        if alarm:
+            st.error("⚠ ALARM")
         st.subheader(f"{ikon} {hedef['ad']}")
         st.metric(label="Durum", value=sonuc["durum"])
         st.metric(label="Yanıt süresi", value=sure_yazi)
         kod = sonuc["kod"]
         st.caption(f"HTTP: {kod if kod is not None else 'yok'} · {kontrol_saati}")
 
-# --- Görev 3: yanıt süresi tarihçesi ---
 st.divider()
 st.subheader("Yanıt süresi tarihçesi")
 
@@ -73,3 +81,9 @@ else:
             else:
                 cizim = hedef_df[["zaman", "sure_ms"]].dropna().set_index("zaman")
                 st.line_chart(cizim)
+
+# Görev 4: 30 sn'de bir kendini yenile
+if otomatik:
+    st.caption(f"Otomatik yenileme açık — {YENILEME_SN} sn sonra tekrar kontrol edilecek.")
+    time.sleep(YENILEME_SN)
+    st.rerun()

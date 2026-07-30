@@ -35,7 +35,14 @@ Tarayıcı açılır: http://localhost:8501
 - [x] Görev 1: `check()` health check fonksiyonu
 - [x] Görev 2: Streamlit durum kartları
 - [x] Görev 3: Tarihçe (`tarihce.csv`) + çizgi grafik
-- [ ] Görev 4: Otomatik yenileme + alarm
+- [x] Görev 4: Otomatik yenileme (30 sn) + 3× ULASILAMIYOR alarmı
 - [ ] Bonus: hedefler.json, uptime, YAVAS yakalama
 
-> `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez. Grafikte çizgi görmek için birkaç kez **Şimdi Yenile** basın.
+> `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
+
+### Alarm testi
+
+1. Challenge 6 API'yi durdurun.
+2. Üç kez **Şimdi Yenile** (veya ~90 sn otomatik yenileme bekleyin).
+3. Mini Envanter kartında **⚠ ALARM** görünmeli.
+4. API'yi tekrar açınca alarm sönmeli.

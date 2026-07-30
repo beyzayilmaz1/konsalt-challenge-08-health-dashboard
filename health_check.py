@@ -63,3 +63,12 @@ def tarihce_oku(dosya: Path = TARIHCE_DOSYASI) -> list[dict]:
         return []
     with dosya.open(newline="", encoding="utf-8") as f:
         return list(csv.DictReader(f))
+
+
+def alarm_var(hedef: str, esik: int = 3, dosya: Path = TARIHCE_DOSYASI) -> bool:
+    """Hedefin son N kaydı hep ULASILAMIYOR ise True."""
+    kayitlar = [k for k in tarihce_oku(dosya) if k.get("hedef") == hedef]
+    if len(kayitlar) < esik:
+        return False
+    sonlar = kayitlar[-esik:]
+    return all(k.get("durum") == "ULASILAMIYOR" for k in sonlar)
