@@ -19,6 +19,7 @@ Operasyon ekiplerinin dağınık servislere tek tek bakmak yerine tek ekrandan i
 | Kalıcılık | Her kontrol `tarihce.csv` dosyasına append edilir |
 | Alarm | Üst üste 3 ULASILAMIYOR → kartta ⚠ ALARM |
 | Yapılandırma | Hedefler `hedefler.json` üzerinden yönetilir |
+| Operasyon görünümü | Özet metrikler + SLA tablosu + Incident Log |
 
 ---
 
@@ -42,6 +43,8 @@ Operasyon ekiplerinin dağınık servislere tek tek bakmak yerine tek ekrandan i
 | Challenge 6 gecikmesi ile YAVAS yakalama | Dokümante edildi |
 | Birim testleri + GitHub Actions CI | Tamamlandı |
 | `SAGLIK_KURALLARI.md` | Tamamlandı |
+| Operasyon özeti + Incident Log | Tamamlandı |
+| Servis SLA özeti | Tamamlandı |
 
 ---
 
@@ -59,7 +62,7 @@ hedefler.json ──► dashboard.py ──► health_check.check()
                tarihce.csv ◄──── requests.get(url)
                       │
                       ▼
-         uptime / alarm / grafikler
+    uptime / alarm / SLA / incident / grafikler
 ```
 
 ---
@@ -98,7 +101,7 @@ hedefler.json ──► dashboard.py ──► health_check.check()
 | Dosya | Rol |
 | --- | --- |
 | `dashboard.py` | Streamlit UI |
-| `health_check.py` | check / tarihçe / alarm / uptime |
+| `health_check.py` | check / tarihçe / alarm / uptime / SLA / incident |
 | `hedefler.json` | Hedef listesi |
 | `SAGLIK_KURALLARI.md` | Eşik gerekçesi |
 | `TESLIM_RAPORU.md` | Bu rapor |
