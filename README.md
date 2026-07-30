@@ -37,7 +37,8 @@ Tarayıcı açılır: http://localhost:8501
 - [x] Görev 3: Tarihçe (`tarihce.csv`) + çizgi grafik
 - [x] Görev 4: Otomatik yenileme (30 sn) + 3× ULASILAMIYOR alarmı
 - [x] Bonus: hedefler.json (configuration management)
-- [ ] Bonus: uptime %, YAVAS yakalama
+- [x] Bonus: uptime % (son 100 kontrol)
+- [ ] Bonus: YAVAS yakalama notu + SAGLIK_KURALLARI.md
 
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
 > Yeni servis eklemek için `hedefler.json` dosyasına obje eklemeniz yeterli — kod değişmez.

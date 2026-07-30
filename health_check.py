@@ -72,3 +72,16 @@ def alarm_var(hedef: str, esik: int = 3, dosya: Path = TARIHCE_DOSYASI) -> bool:
         return False
     sonlar = kayitlar[-esik:]
     return all(k.get("durum") == "ULASILAMIYOR" for k in sonlar)
+
+
+def uptime_yuzde(hedef: str, pencere: int = 100, dosya: Path = TARIHCE_DOSYASI) -> float | None:
+    """Son N kontrolde SAGLIKLI oranını yüzde olarak döndürür.
+
+    Kayıt yoksa None.
+    """
+    kayitlar = [k for k in tarihce_oku(dosya) if k.get("hedef") == hedef]
+    if not kayitlar:
+        return None
+    sonlar = kayitlar[-pencere:]
+    saglikli = sum(1 for k in sonlar if k.get("durum") == "SAGLIKLI")
+    return round(100.0 * saglikli / len(sonlar), 1)

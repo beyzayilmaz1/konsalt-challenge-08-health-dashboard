@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-from health_check import alarm_var, check, kaydet, tarihce_oku
+from health_check import alarm_var, check, kaydet, tarihce_oku, uptime_yuzde
 
 HEDEFLER_DOSYASI = Path("hedefler.json")
 
@@ -50,10 +50,12 @@ for sutun, hedef in zip(sutunlar, HEDEFLER):
     sonuc = check(hedef["url"])
     kaydet(hedef["ad"], sonuc)
     alarm = alarm_var(hedef["ad"])
+    uptime = uptime_yuzde(hedef["ad"])
 
     ikon = DURUM_IKON.get(sonuc["durum"], "❓")
     sure = sonuc["sure_ms"]
     sure_yazi = f"{sure} ms" if sure is not None else "—"
+    uptime_yazi = f"%{uptime}" if uptime is not None else "—"
 
     with sutun:
         if alarm:
@@ -61,6 +63,7 @@ for sutun, hedef in zip(sutunlar, HEDEFLER):
         st.subheader(f"{ikon} {hedef['ad']}")
         st.metric(label="Durum", value=sonuc["durum"])
         st.metric(label="Yanıt süresi", value=sure_yazi)
+        st.metric(label="Uptime (son 100)", value=uptime_yazi)
         kod = sonuc["kod"]
         st.caption(f"HTTP: {kod if kod is not None else 'yok'} · {kontrol_saati}")
 
