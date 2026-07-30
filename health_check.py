@@ -1,26 +1,42 @@
-"""Health check çekirdeği — Challenge 8."""
+"""
+Health check çekirdeği — dashboard ve birim testleri tarafından paylaşılır.
+
+Durum modeli (SLA eşiği: 1 saniye):
+  SAGLIKLI      → HTTP 2xx ve yanıt < 1000 ms
+  YAVAS         → HTTP 2xx ve yanıt >= 1000 ms
+  HATALI        → HTTP 4xx / 5xx
+  ULASILAMIYOR  → bağlantı hatası, DNS, timeout vb.
+"""
 
 from __future__ import annotations
 
-import csv
 from datetime import datetime
-from pathlib import Path
+from typing import Any, Callable, Optional
 
 import requests
 
-# 2xx ve süre bu eşiğin altındaysa SAGLIKLI, üstündeyse YAVAS
-YAVAS_ESIGI_MS = 1000
-TARIHCE_DOSYASI = Path("tarihce.csv")
-TARIHCE_ALANLAR = ["zaman", "hedef", "durum", "sure_ms", "kod"]
+SAGLIKLI = "SAGLIKLI"
+YAVAS = "YAVAS"
+HATALI = "HATALI"
+ULASILAMIYOR = "ULASILAMIYOR"
+
+DURUM_IKON = {
+    SAGLIKLI: "🟢",
+    YAVAS: "🟡",
+    HATALI: "🔴",
+    ULASILAMIYOR: "⚫",
+}
+
+# Operasyonel eşik: 1 sn altında "sağlıklı", üstünde "yavaş ama ayakta"
+YAVASLIK_ESIGI_MS = 1000.0
 
 
-def check(url: str, timeout: float = 3) -> dict:
-    """Tek bir URL'yi kontrol eder.
+def check(url: str, timeout: float = 3.0) -> dict[str, Any]:
+    """
+    Tek bir hedefe health check yapar.
 
-    Dönüş:
-        {"durum": "SAGLIKLI"|"YAVAS"|"HATALI"|"ULASILAMIYOR",
-         "sure_ms": float | None,
-         "kod": int | None}
+    Returns:
+        {"durum": str, "sure_ms": float | None, "kod": int | None, "hata": str | None}
     """
     try:
         response = requests.get(url, timeout=timeout)
@@ -28,139 +44,197 @@ def check(url: str, timeout: float = 3) -> dict:
         kod = response.status_code
 
         if 200 <= kod < 300:
-            durum = "SAGLIKLI" if sure_ms < YAVAS_ESIGI_MS else "YAVAS"
+            durum = SAGLIKLI if sure_ms < YAVASLIK_ESIGI_MS else YAVAS
         else:
-            durum = "HATALI"
+            durum = HATALI
 
-        return {"durum": durum, "sure_ms": round(sure_ms, 1), "kod": kod}
-
-    except requests.RequestException:
-        # Bağlantı kurulamadı / timeout → status kodu yok
-        return {"durum": "ULASILAMIYOR", "sure_ms": None, "kod": None}
-
-
-def kaydet(hedef: str, sonuc: dict, dosya: Path = TARIHCE_DOSYASI) -> None:
-    """Kontrol sonucunu tarihce.csv dosyasına append eder."""
-    yeni = not dosya.exists()
-    with dosya.open("a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=TARIHCE_ALANLAR)
-        if yeni:
-            writer.writeheader()
-        writer.writerow(
-            {
-                "zaman": datetime.now().isoformat(timespec="seconds"),
-                "hedef": hedef,
-                "durum": sonuc["durum"],
-                "sure_ms": sonuc["sure_ms"] if sonuc["sure_ms"] is not None else "",
-                "kod": sonuc["kod"] if sonuc["kod"] is not None else "",
-            }
-        )
+        return {
+            "durum": durum,
+            "sure_ms": round(sure_ms, 2),
+            "kod": kod,
+            "hata": None,
+        }
+    except requests.RequestException as exc:
+        # Bağlantı kurulamadığında status kodu yoktur.
+        return {
+            "durum": ULASILAMIYOR,
+            "sure_ms": None,
+            "kod": None,
+            "hata": type(exc).__name__,
+        }
 
 
-def tarihce_oku(dosya: Path = TARIHCE_DOSYASI) -> list[dict]:
-    """tarihce.csv içeriğini satır listesi olarak döndürür."""
-    if not dosya.exists():
-        return []
-    with dosya.open(newline="", encoding="utf-8") as f:
-        return list(csv.DictReader(f))
-
-
-def alarm_var(hedef: str, esik: int = 3, dosya: Path = TARIHCE_DOSYASI) -> bool:
-    """Hedefin son N kaydı hep ULASILAMIYOR ise True."""
-    kayitlar = [k for k in tarihce_oku(dosya) if k.get("hedef") == hedef]
-    if len(kayitlar) < esik:
-        return False
-    sonlar = kayitlar[-esik:]
-    return all(k.get("durum") == "ULASILAMIYOR" for k in sonlar)
-
-
-def uptime_yuzde(hedef: str, pencere: int = 100, dosya: Path = TARIHCE_DOSYASI) -> float | None:
-    """Son N kontrolde SAGLIKLI oranını yüzde olarak döndürür.
-
-    Kayıt yoksa None.
-    """
-    kayitlar = [k for k in tarihce_oku(dosya) if k.get("hedef") == hedef]
+def uptime_yuzdesi(kayitlar: list[dict[str, Any]], pencere: int = 100) -> Optional[float]:
+    """Son N kontrolün yüzde kaçının SAGLIKLI olduğunu hesaplar."""
     if not kayitlar:
         return None
-    sonlar = kayitlar[-pencere:]
-    saglikli = sum(1 for k in sonlar if k.get("durum") == "SAGLIKLI")
-    return round(100.0 * saglikli / len(sonlar), 1)
+    son = kayitlar[-pencere:]
+    saglikli = sum(1 for k in son if k.get("durum") == SAGLIKLI)
+    return round(100.0 * saglikli / len(son), 1)
 
 
-def operasyon_ozeti(anlik: list[dict]) -> dict:
-    """Anlık kart sonuçlarından özet metrikler üretir.
+def ardisik_ulasilamiyor_mu(kayitlar: list[dict[str, Any]], esik: int = 3) -> bool:
+    """Hedefin son `esik` kaydı hep ULASILAMIYOR mu?"""
+    if len(kayitlar) < esik:
+        return False
+    return all(k.get("durum") == ULASILAMIYOR for k in kayitlar[-esik:])
 
-    anlik: [{"ad": ..., "durum": ..., "sure_ms": ...}, ...]
-    """
-    dagilim = {"SAGLIKLI": 0, "YAVAS": 0, "HATALI": 0, "ULASILAMIYOR": 0}
+
+def ardisik_ulasilamiyor_sayisi(kayitlar: list[dict[str, Any]]) -> int:
+    """Sondan başlayarak ardışık ULASILAMIYOR kayıt sayısı."""
+    sayac = 0
+    for kayit in reversed(kayitlar):
+        if kayit.get("durum") == ULASILAMIYOR:
+            sayac += 1
+        else:
+            break
+    return sayac
+
+
+def sure_ms_oku(deger: Any) -> float | None:
+    if deger in ("", None):
+        return None
+    try:
+        return float(deger)
+    except (TypeError, ValueError):
+        return None
+
+
+def sure_formatla(saniye: int) -> str:
+    if saniye < 60:
+        return f"{saniye}s"
+    dakika, sn = divmod(saniye, 60)
+    if dakika < 60:
+        return f"{dakika}m {sn}s"
+    saat, dakika = divmod(dakika, 60)
+    return f"{saat}h {dakika}m"
+
+
+def alarm_suresi_saniye(
+    kayitlar: list[dict[str, Any]],
+    esik: int = 3,
+    yenileme_saniye: int = 30,
+) -> int | None:
+    """Aktif alarm varsa ardışık erişim kaybının süresini saniye cinsinden döner."""
+    if not ardisik_ulasilamiyor_mu(kayitlar, esik):
+        return None
+
+    ardisik = []
+    for kayit in reversed(kayitlar):
+        if kayit.get("durum") == ULASILAMIYOR:
+            ardisik.append(kayit)
+        else:
+            break
+
+    if len(ardisik) < 2:
+        return max(0, (len(ardisik) - 1) * yenileme_saniye)
+
+    try:
+        def _parse(zaman: str) -> datetime:
+            metin = str(zaman)
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+                try:
+                    return datetime.strptime(metin, fmt)
+                except ValueError:
+                    continue
+            return datetime.fromisoformat(metin)
+
+        son = _parse(str(ardisik[0]["zaman"]))
+        ilk = _parse(str(ardisik[-1]["zaman"]))
+        return max(0, int((son - ilk).total_seconds()))
+    except (ValueError, KeyError, TypeError):
+        return max(0, (len(ardisik) - 1) * yenileme_saniye)
+
+
+def alarm_detay_metni(
+    kayitlar: list[dict[str, Any]],
+    esik: int = 3,
+    yenileme_saniye: int = 30,
+) -> str | None:
+    if not ardisik_ulasilamiyor_mu(kayitlar, esik):
+        return None
+    adet = ardisik_ulasilamiyor_sayisi(kayitlar)
+    sure = alarm_suresi_saniye(kayitlar, esik, yenileme_saniye)
+    sure_txt = "—" if sure is None else sure_formatla(sure)
+    return f"Son {adet} kontrol ulaşılamadı · Süre: {sure_txt}"
+
+
+def son_kayit_zamani(
+    kayitlar: list[dict[str, Any]],
+    kosul: Callable[[dict[str, Any]], bool],
+) -> str | None:
+    for kayit in reversed(kayitlar):
+        if kosul(kayit):
+            zaman = kayit.get("zaman")
+            return str(zaman) if zaman else None
+    return None
+
+
+def son_basari_zamani(kayitlar: list[dict[str, Any]]) -> str | None:
+    return son_kayit_zamani(kayitlar, lambda k: k.get("durum") == SAGLIKLI)
+
+
+def son_hata_zamani(kayitlar: list[dict[str, Any]]) -> str | None:
+    return son_kayit_zamani(kayitlar, lambda k: k.get("durum") != SAGLIKLI)
+
+
+def operasyon_ozeti_hesapla(sonuclar: list[dict[str, Any]]) -> dict[str, Any]:
+    sayilar = {SAGLIKLI: 0, YAVAS: 0, HATALI: 0, ULASILAMIYOR: 0}
     sureler: list[float] = []
-    for kayit in anlik:
-        durum = kayit.get("durum")
-        if durum in dagilim:
-            dagilim[durum] += 1
-        sure = kayit.get("sure_ms")
+
+    for sonuc in sonuclar:
+        durum = sonuc.get("durum")
+        if durum in sayilar:
+            sayilar[durum] += 1
+        sure = sure_ms_oku(sonuc.get("sure_ms"))
         if sure is not None:
-            sureler.append(float(sure))
+            sureler.append(sure)
+
+    ortalama = round(sum(sureler) / len(sureler), 1) if sureler else None
     return {
-        "toplam": len(anlik),
-        "dagilim": dagilim,
-        "ortalama_ms": round(sum(sureler) / len(sureler), 1) if sureler else None,
+        "toplam": len(sonuclar),
+        "ortalama_sure_ms": ortalama,
+        "saglikli": sayilar[SAGLIKLI],
+        "yavas": sayilar[YAVAS],
+        "hatali": sayilar[HATALI],
+        "ulasilamiyor": sayilar[ULASILAMIYOR],
     }
 
 
-def incident_log(limit: int = 50, dosya: Path = TARIHCE_DOSYASI) -> list[dict]:
-    """SAGLIKLI olmayan kayıtları (yeniden eskiye) listeler.
+def incident_log_kayitlari(
+    tarihce: list[dict[str, Any]],
+    limit: int = 12,
+    alarm_esigi: int = 3,
+) -> list[dict[str, str]]:
+    incidents: list[dict[str, str]] = []
+    ard_isik_sayac: dict[str, int] = {}
+    durum_css = {
+        SAGLIKLI: "ok",
+        YAVAS: "warn",
+        HATALI: "bad",
+        ULASILAMIYOR: "down",
+    }
 
-    Aynı hedef üst üste 3 ULASILAMIYOR olduğunda etiket ALARM olur.
-    """
-    kayitlar = tarihce_oku(dosya)
-    sagliksiz = [k for k in kayitlar if k.get("durum") != "SAGLIKLI"]
-    sagliksiz = list(reversed(sagliksiz[-limit:]))
+    for kayit in tarihce:
+        hedef = str(kayit.get("hedef", "Bilinmeyen"))
+        durum = str(kayit.get("durum", ""))
+        if durum == ULASILAMIYOR:
+            ard_isik_sayac[hedef] = ard_isik_sayac.get(hedef, 0) + 1
+        else:
+            ard_isik_sayac[hedef] = 0
 
-    sonuc: list[dict] = []
-    for kayit in sagliksiz:
-        hedef = kayit.get("hedef", "")
-        etiket = "ALARM" if alarm_var(hedef, dosya=dosya) and kayit.get("durum") == "ULASILAMIYOR" else kayit.get("durum")
-        sonuc.append(
+        if durum == SAGLIKLI:
+            continue
+
+        etiket = "ALARM" if durum == ULASILAMIYOR and ard_isik_sayac[hedef] >= alarm_esigi else durum
+        css = "alarm" if etiket == "ALARM" else durum_css.get(durum, "down")
+        incidents.append(
             {
-                "zaman": kayit.get("zaman"),
+                "zaman": str(kayit.get("zaman", "—")),
                 "hedef": hedef,
                 "etiket": etiket,
-                "durum": kayit.get("durum"),
-                "sure_ms": kayit.get("sure_ms") or "—",
-                "kod": kayit.get("kod") or "—",
+                "css": css,
             }
         )
-    return sonuc
 
-
-def sla_ozeti(
-    hedefler: list[str],
-    pencere: int = 100,
-    dosya: Path = TARIHCE_DOSYASI,
-) -> list[dict]:
-    """Her hedef için SLA satırı: uptime, ort. süre, son durum, alarm."""
-    tum = tarihce_oku(dosya)
-    satirlar: list[dict] = []
-
-    for ad in hedefler:
-        kayitlar = [k for k in tum if k.get("hedef") == ad]
-        sonlar = kayitlar[-pencere:]
-        sureler = [
-            float(k["sure_ms"])
-            for k in sonlar
-            if k.get("sure_ms") not in (None, "")
-        ]
-        uptime = uptime_yuzde(ad, pencere=pencere, dosya=dosya)
-        son_durum = sonlar[-1]["durum"] if sonlar else "—"
-        satirlar.append(
-            {
-                "servis": ad,
-                "kontrol": len(sonlar),
-                "uptime_%": uptime if uptime is not None else "—",
-                "ort_sure_ms": round(sum(sureler) / len(sureler), 1) if sureler else "—",
-                "son_durum": son_durum,
-                "alarm": "⚠ EVET" if alarm_var(ad, dosya=dosya) else "hayır",
-            }
-        )
-    return satirlar
+    return list(reversed(incidents[-limit:]))

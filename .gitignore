@@ -1,12 +1,11 @@
 __pycache__/
 *.py[cod]
-*.egg-info/
 .venv/
 venv/
 .env
-.DS_Store
 .streamlit/secrets.toml
 tarihce.csv
-*.log
+.pytest_cache/
 .idea/
 .vscode/
+*.log

@@ -1,47 +1,82 @@
-# Sağlık Kuralları
+# Sağlık Kuralları Tanımı
 
-Bu dashboard'da bir servisin "çalışıyor" olması ile "sağlıklı" olması aynı şey değildir.
-Health check dört duruma ayrılır; eşiğin gerekçesi aşağıdadır.
+**Proje:** Challenge 8 — Sağlık Dashboard'u  
+**Hazırlayan:** Beyza Yılmaz  
+**Kapsam:** Health check durum modeli ve eşik gerekçeleri
 
-## Durum modeli
+---
 
-| Durum | Koşul | Anlamı |
-| --- | --- | --- |
-| **SAGLIKLI** | HTTP 2xx ve yanıt &lt; 1000 ms | Servis erişilebilir ve kabul edilebilir hızda |
-| **YAVAS** | HTTP 2xx ve yanıt ≥ 1000 ms | Servis ayakta ama latency bozulmuş |
-| **HATALI** | HTTP 4xx / 5xx | Bağlantı var; uygulama hata dönüyor |
-| **ULASILAMIYOR** | Timeout / bağlantı hatası | Status kodu yok; servise ulaşılamıyor |
+## 1. "Çalışıyor" ile "sağlıklı" aynı şey değildir
 
-## Neden 1 saniye eşiği?
+Bir endpoint'in HTTP 200 dönmesi, servisin **ayakta** olduğunu gösterir; ancak kullanıcı deneyimi açısından **yeterince hızlı** olduğu anlamına gelmez. NOC ekranlarında bu iki kavram bilinçli olarak ayrılır:
 
-- Operasyon ekranlarında "kullanıcı fark eder" gecikme çoğu zaman saniye mertebesindedir.
-- Challenge kapsamı için yuvarlak, ölçülebilir ve kolay test edilebilir bir sınır gerekir.
-- Challenge 6 API'ye kasıtlı `time.sleep(2)` eklendiğinde dashboard'un **YAVAS** yakalayıp yakalamadığı net görülür.
-- Daha sıkı (ör. 300 ms) veya daha gevşek (ör. 3 sn) eşikler de mümkün; kritik olan eşik seçiminin bilinçli olmasıdır.
+| Kavram | Soru | Dashboard karşılığı |
+|--------|------|---------------------|
+| Availability (erişilebilirlik) | Servise ulaşıyor muyuz? | `ULASILAMIYOR` vs diğerleri |
+| Correctness (doğruluk) | Anlamlı HTTP yanıtı mı? | `HATALI` (4xx/5xx) |
+| Latency (gecikme) | Kabul edilebilir sürede mi? | `SAGLIKLI` vs `YAVAS` |
 
-Bu projede eşik `health_check.py` içinde `YAVAS_ESIGI_MS = 1000` olarak tutulur.
+Bu ayrım olmadan yavaşlayan bir API, "yeşil" görünmeye devam eder; operasyon ekibi sorunu geç fark eder.
 
-## Neden YAVAS ayrı bir durum?
+---
 
-- **Çalışıyor ≠ sağlıklı.** 2xx dönmek, kullanıcı deneyiminin iyi olduğu anlamına gelmez.
-- Kesinti (`ULASILAMIYOR` / `HATALI`) ile performans bozulması farklı müdahale ister:
-  - Kesintide: servisi ayağa kaldırma, ağ / DNS kontrolü
-  - Yavaşlıkta: kaynak, DB, bağımlı API veya overload incelemesi
-- Tek "kötü" kova kullanılırsa latency alarmı ya hiç çıkmaz ya da her yavaş cevapta yanlış alarm üretir.
-- NOC bakışında sarı kart, kırmızı/siyahtan önce erken uyarı verir.
+## 2. Neden 1 saniye eşiği?
 
-## Alarm eşiği (3 × ULASILAMIYOR)
+Challenge kapsamında **1.000 ms** eşik olarak seçilmiştir. Gerekçeler:
 
-Tek seferlik timeout'ların (geçici ağ takılması) hemen panik yaratmaması için ardışık 3 başarısızlık gerekir.
-Bu basit bir anti-flapping kuralıdır.
+1. **İnsan algısı:** Web etkileşimlerinde ~1 sn civarı, "anında" ile "bekliyorum" arasındaki tipik sınırdır (kullanıcı deneyimi literatüründe sık referans verilen bir eşik bandı).
+2. **Health check bağlamı:** `/health` gibi hafif uçlar veritabanı taraması yapmamalıdır; 1 sn'nin üzerinde yanıt, bağımlılık tıkanması veya kaynak baskısı sinyali verebilir.
+3. **Yanlış pozitif dengesi:** Çok düşük eşik (ör. 100 ms) ağ jitter'ı yüzünden sürekli sarı üretir; çok yüksek eşik (ör. 5 sn) gerçek bozulmayı gizler. 1 sn, staj/lab ortamı için anlaşılır ve ölçülebilir bir orta yoldur.
+4. **Ölçüm kaynağı:** Süre `requests` kütüphanesinin `response.elapsed` alanından alınır; ek kronometre tutulmaz — tutarlı ve tekrarlanabilir ölçüm sağlar.
 
-## YAVAS'ı nasıl doğrularım?
+> Üretim SLA'larında eşik, servis sınıfına göre değişir (ör. senkron ödeme API'si vs. arka plan raporu). Bu projede amaç, **eşik kavramını** ve **durum ayrımını** doğru modellemektir.
 
-Challenge 6 API terminalinde kasıtlı gecikme:
+---
 
-```powershell
-$env:HEALTH_DELAY_SECONDS="2"
-python -m uvicorn main:app --port 8000
-```
+## 3. Neden `YAVAS` ayrı bir durum?
 
-Dashboard'da Mini Envanter kartı **🟡 YAVAS** olmalı (yanıt ~2000 ms).
+`YAVAS`, servisin **çökmüş** olmadığını ama **performans bozulması** yaşadığını işaret eder:
+
+| Durum | Tipik aksiyon |
+|-------|----------------|
+| 🟢 SAGLIKLI | İzlemeye devam |
+| 🟡 YAVAS | Kapasite / bağımlılık incelemesi; trend grafiğine bak |
+| 🔴 HATALI | Uygulama / gateway hata oranı; log ve status kodu analizi |
+| ⚫ ULASILAMIYOR | Ağ, DNS, process down; alarm ve eskalasyon |
+
+Tek bir "kötü" kova kullanılırsa:
+
+- Yavaşlık ile kesinti aynı öncelikte görünür,
+- Alarm yorgunluğu artar,
+- Kök neden analizi zorlaşır.
+
+`YAVAS` sayesinde dashboard, **degraded** (bozulmuş ama ayakta) senaryosunu görünür kılar. Bonus doğrulama: Challenge 6 API'sinde `HEALTH_DELAY_SECONDS=2` ile kasıtlı gecikme eklendiğinde kartın 🟡'e düşmesi bu ayrımın işe yaradığını kanıtlar.
+
+---
+
+## 4. `ULASILAMIYOR` ve try/except zorunluluğu
+
+`requests.get` bağlantı kuramazsa (port kapalı, timeout, DNS) **exception** fırlatır; ortada bir HTTP status kodu yoktur. Bu yüzden `check()` fonksiyonu try/except ile sarılmıştır:
+
+- Exception → `ULASILAMIYOR` (`kod=null`, `sure_ms=null`)
+- 4xx/5xx → `HATALI` (servis cevap veriyor ama sağlıksız)
+- 2xx + süre → `SAGLIKLI` veya `YAVAS`
+
+Bu ayrım, "servis yok" ile "servis hata dönüyor" vakalarını operasyonel olarak ayırır.
+
+---
+
+## 5. Alarm eşiği: üst üste 3 kontrol
+
+Tek seferlik bir timeout geçici ağ gürültüsü olabilir. **Ardışık 3** `ULASILAMIYOR` kaydı, flapping'i (titreme) azaltır ve yanlış alarm oranını düşürür. Eşik aşıldığında kart üstünde **⚠ ALARM** gösterilir; servis toparlanınca sayaç doğal olarak sıfırlanır (son 3 kayıt artık ULASILAMIYOR değildir).
+
+---
+
+## 6. Özet matris
+
+| Durum | HTTP | Süre | Anlam |
+|-------|------|------|--------|
+| SAGLIKLI | 2xx | &lt; 1 sn | Beklenen sağlıklı davranış |
+| YAVAS | 2xx | ≥ 1 sn | Ayakta ama latency SLA dışı |
+| HATALI | 4xx/5xx | (ölçülür) | Uygulama / gateway hatası |
+| ULASILAMIYOR | yok | yok | Erişim yok / timeout |

@@ -1,18 +1,22 @@
 [
   {
     "ad": "Mini Envanter API",
-    "url": "http://127.0.0.1:8000/health"
+    "url": "http://127.0.0.1:8000/health",
+    "aciklama": "Challenge 6 FastAPI /health endpoint'i"
   },
   {
     "ad": "Open-Meteo",
-    "url": "https://api.open-meteo.com/v1/forecast?latitude=41&longitude=29&current_weather=true"
+    "url": "https://api.open-meteo.com/v1/forecast?latitude=41&longitude=29&current_weather=true",
+    "aciklama": "Harici hava durumu API'si (Istanbul koordinatlari)"
   },
   {
-    "ad": "RestCountries",
-    "url": "https://restcountries.com/v3.1/alpha/tr"
+    "ad": "RestCountries TR",
+    "url": "https://restcountries.com/v3.1/alpha/tr",
+    "aciklama": "Turkiye ulke bilgisi endpoint'i"
   },
   {
     "ad": "Bozuk Hedef",
-    "url": "http://localhost:9999/yok"
+    "url": "http://localhost:9999/yok",
+    "aciklama": "Kasitli ulasilamayan hedef (alarm senaryosu)"
   }
 ]
