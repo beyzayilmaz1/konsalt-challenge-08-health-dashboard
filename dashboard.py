@@ -14,6 +14,7 @@ from health_check import (
     incident_log,
     kaydet,
     operasyon_ozeti,
+    sla_ozeti,
     tarihce_oku,
     uptime_yuzde,
 )
@@ -91,6 +92,10 @@ o4.metric("🔴 HATALI", ozet["dagilim"]["HATALI"])
 o5.metric("⚫ ULASILAMIYOR", ozet["dagilim"]["ULASILAMIYOR"])
 ort = ozet["ortalama_ms"]
 o6.metric("Ort. süre", f"{ort} ms" if ort is not None else "—")
+
+st.subheader("Servis SLA özeti")
+sla = sla_ozeti([h["ad"] for h in HEDEFLER])
+st.dataframe(pd.DataFrame(sla), use_container_width=True, hide_index=True)
 
 st.divider()
 st.subheader("Yanıt süresi tarihçesi")

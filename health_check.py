@@ -132,3 +132,35 @@ def incident_log(limit: int = 50, dosya: Path = TARIHCE_DOSYASI) -> list[dict]:
             }
         )
     return sonuc
+
+
+def sla_ozeti(
+    hedefler: list[str],
+    pencere: int = 100,
+    dosya: Path = TARIHCE_DOSYASI,
+) -> list[dict]:
+    """Her hedef için SLA satırı: uptime, ort. süre, son durum, alarm."""
+    tum = tarihce_oku(dosya)
+    satirlar: list[dict] = []
+
+    for ad in hedefler:
+        kayitlar = [k for k in tum if k.get("hedef") == ad]
+        sonlar = kayitlar[-pencere:]
+        sureler = [
+            float(k["sure_ms"])
+            for k in sonlar
+            if k.get("sure_ms") not in (None, "")
+        ]
+        uptime = uptime_yuzde(ad, pencere=pencere, dosya=dosya)
+        son_durum = sonlar[-1]["durum"] if sonlar else "—"
+        satirlar.append(
+            {
+                "servis": ad,
+                "kontrol": len(sonlar),
+                "uptime_%": uptime if uptime is not None else "—",
+                "ort_sure_ms": round(sum(sureler) / len(sureler), 1) if sureler else "—",
+                "son_durum": son_durum,
+                "alarm": "⚠ EVET" if alarm_var(ad, dosya=dosya) else "hayır",
+            }
+        )
+    return satirlar

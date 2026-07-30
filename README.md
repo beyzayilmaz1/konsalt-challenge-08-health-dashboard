@@ -51,6 +51,7 @@ Tarayıcı: http://localhost:8501
 - [x] Bonus: YAVAS yakalama (Challenge 6 gecikmesi)
 - [x] Teslim: SAGLIK_KURALLARI.md + screenshots/
 - [x] Ek: Operasyon özeti + Incident Log
+- [x] Ek: Servis SLA özeti
 - [x] Ek: Birim testleri + GitHub Actions CI
 
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.

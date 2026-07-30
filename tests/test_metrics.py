@@ -59,6 +59,22 @@ class MetrikTestleri(unittest.TestCase):
         self.assertEqual(ozet["dagilim"]["ULASILAMIYOR"], 1)
         self.assertEqual(ozet["ortalama_ms"], 800.0)
 
+    def test_sla_ozeti(self) -> None:
+        from health_check import sla_ozeti
+
+        kaydet("API", {"durum": "SAGLIKLI", "sure_ms": 100, "kod": 200}, self.dosya)
+        kaydet("API", {"durum": "SAGLIKLI", "sure_ms": 200, "kod": 200}, self.dosya)
+        kaydet("Diger", {"durum": "ULASILAMIYOR", "sure_ms": None, "kod": None}, self.dosya)
+
+        satirlar = sla_ozeti(["API", "Diger"], dosya=self.dosya)
+        self.assertEqual(len(satirlar), 2)
+        self.assertEqual(satirlar[0]["servis"], "API")
+        self.assertEqual(satirlar[0]["kontrol"], 2)
+        self.assertEqual(satirlar[0]["uptime_%"], 100.0)
+        self.assertEqual(satirlar[0]["ort_sure_ms"], 150.0)
+        self.assertEqual(satirlar[0]["alarm"], "hayır")
+        self.assertEqual(satirlar[1]["son_durum"], "ULASILAMIYOR")
+
 
 if __name__ == "__main__":
     unittest.main()
