@@ -1,22 +1,25 @@
 """Sağlık Dashboard'u — Challenge 8: kartlar, tarihçe, otomatik yenileme, alarm."""
 
+import json
 import time
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
 from health_check import alarm_var, check, kaydet, tarihce_oku
 
-HEDEFLER = [
-    {"ad": "Mini Envanter API", "url": "http://127.0.0.1:8000/health"},
-    {
-        "ad": "Open-Meteo",
-        "url": "https://api.open-meteo.com/v1/forecast?latitude=41&longitude=29&current_weather=true",
-    },
-    {"ad": "RestCountries", "url": "https://restcountries.com/v3.1/alpha/tr"},
-    {"ad": "Bozuk Hedef", "url": "http://localhost:9999/yok"},
-]
+HEDEFLER_DOSYASI = Path("hedefler.json")
+
+
+def hedefleri_yukle(dosya: Path = HEDEFLER_DOSYASI) -> list[dict]:
+    """İzlenecek hedefleri JSON dosyasından okur."""
+    with dosya.open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+HEDEFLER = hedefleri_yukle()
 
 DURUM_IKON = {
     "SAGLIKLI": "🟢",

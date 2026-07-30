@@ -1,0 +1,18 @@
+[
+  {
+    "ad": "Mini Envanter API",
+    "url": "http://127.0.0.1:8000/health"
+  },
+  {
+    "ad": "Open-Meteo",
+    "url": "https://api.open-meteo.com/v1/forecast?latitude=41&longitude=29&current_weather=true"
+  },
+  {
+    "ad": "RestCountries",
+    "url": "https://restcountries.com/v3.1/alpha/tr"
+  },
+  {
+    "ad": "Bozuk Hedef",
+    "url": "http://localhost:9999/yok"
+  }
+]

@@ -36,9 +36,11 @@ Tarayıcı açılır: http://localhost:8501
 - [x] Görev 2: Streamlit durum kartları
 - [x] Görev 3: Tarihçe (`tarihce.csv`) + çizgi grafik
 - [x] Görev 4: Otomatik yenileme (30 sn) + 3× ULASILAMIYOR alarmı
-- [ ] Bonus: hedefler.json, uptime, YAVAS yakalama
+- [x] Bonus: hedefler.json (configuration management)
+- [ ] Bonus: uptime %, YAVAS yakalama
 
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
+> Yeni servis eklemek için `hedefler.json` dosyasına obje eklemeniz yeterli — kod değişmez.
 
 ### Alarm testi
 
