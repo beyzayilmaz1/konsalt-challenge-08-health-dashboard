@@ -38,7 +38,7 @@ Operasyon ekiplerinin sistemlere tek tek bakmak yerine tek ekrandan izlediği NO
 | `requirements.txt` | Bağımlılıklar |
 | `README.md` |Kılavuz |
 
-### Galip Bey ile paylaşılacak resmi teslim listesi
+### Teslim listesi
 
 | Zorunlu | Dosya |
 |---------|--------|
@@ -219,7 +219,7 @@ hedefler.json ──► dashboard.py ──► health_check.check()
 
 ---
 
-## Known Limitations
+## Bilinen Sınırlamalar
 
 - Her Streamlit rerun'ında yeni probe çalışır ve `tarihce.csv`'ye kayıt eklenir.
 - `tarihce.csv` sınırsız büyür; retention/rotation yoktur.
@@ -230,7 +230,7 @@ hedefler.json ──► dashboard.py ──► health_check.check()
 
 ---
 
-## Future Improvements
+## Gelecekteki İyileştirmeler
 
 - SQLite veya PostgreSQL ile zaman serisi saklama
 - Prometheus / Grafana entegrasyonu
