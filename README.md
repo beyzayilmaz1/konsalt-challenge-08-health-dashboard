@@ -6,8 +6,11 @@ Stack: Python 3 · Streamlit · requests
 ## Bu repo ne yapacak?
 
 Birden fazla servisi periyodik kontrol eden mini NOC (health-check) dashboard'u.
+Durum modeli: **SAGLIKLI / YAVAS / HATALI / ULASILAMIYOR**.
 
 ## İzlenecek hedefler
+
+Hedefler `hedefler.json` dosyasından okunur:
 
 1. Challenge 6 API — `http://127.0.0.1:8000/health`
 2. Open-Meteo — hava durumu API
@@ -22,13 +25,20 @@ pip install -r requirements.txt
 
 ## Çalıştırma
 
+Challenge 6 API (ayrı terminal):
+
+```bash
+cd ../konsalt-challenge-06-mini-envanter-api-main
+python -m uvicorn main:app --port 8000
+```
+
+Dashboard:
+
 ```bash
 python -m streamlit run dashboard.py
 ```
 
-Tarayıcı açılır: http://localhost:8501
-
-> Challenge 6 API ayaktaysa Mini Envanter kartı 🟢 olur; kapalıysa ⚫ ULASILAMIYOR.
+Tarayıcı: http://localhost:8501
 
 ## İlerleme
 
@@ -38,14 +48,40 @@ Tarayıcı açılır: http://localhost:8501
 - [x] Görev 4: Otomatik yenileme (30 sn) + 3× ULASILAMIYOR alarmı
 - [x] Bonus: hedefler.json (configuration management)
 - [x] Bonus: uptime % (son 100 kontrol)
-- [ ] Bonus: YAVAS yakalama notu + SAGLIK_KURALLARI.md
+- [x] Bonus: YAVAS yakalama (Challenge 6 gecikmesi)
+- [x] Teslim: SAGLIK_KURALLARI.md + screenshots/
 
 > `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez.
 > Yeni servis eklemek için `hedefler.json` dosyasına obje eklemeniz yeterli — kod değişmez.
 
-### Alarm testi
+Sağlık kurallarının gerekçesi: [SAGLIK_KURALLARI.md](SAGLIK_KURALLARI.md)
+
+## Doğrulama
+
+### Alarm
 
 1. Challenge 6 API'yi durdurun.
-2. Üç kez **Şimdi Yenile** (veya ~90 sn otomatik yenileme bekleyin).
+2. Üç kez **Şimdi Yenile** (veya ~90 sn otomatik yenileme).
 3. Mini Envanter kartında **⚠ ALARM** görünmeli.
 4. API'yi tekrar açınca alarm sönmeli.
+
+### Bonus: YAVAS yakalama
+
+```powershell
+$env:HEALTH_DELAY_SECONDS="2"
+python -m uvicorn main:app --port 8000
+```
+
+Dashboard Mini Envanter kartında **🟡 YAVAS** görünmeli (~2000 ms).
+
+## Teslim paketi
+
+| Dosya | Rol |
+| --- | --- |
+| `dashboard.py` | Streamlit uygulaması |
+| `health_check.py` | check / tarihçe / alarm / uptime |
+| `hedefler.json` | İzlenecek hedefler |
+| `SAGLIK_KURALLARI.md` | Neden 1 sn? Neden YAVAS ayrı? |
+| `README.md` | Bu kılavuz |
+| `screenshots/` | Normal + alarmlı ekran görüntüleri |
+| `requirements.txt` | Bağımlılıklar |
