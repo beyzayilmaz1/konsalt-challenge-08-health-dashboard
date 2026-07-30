@@ -141,6 +141,8 @@ $env:HEALTH_DELAY_SECONDS="2"; python -m uvicorn main:app --port 8000
 
 Dashboard Mini Envanter kartında **🟡 YAVAS** görmelidir (yanıt ~2000 ms).
 
+Kasıtlı gecikme Challenge 6 API'sinde (`HEALTH_DELAY_SECONDS`); ilgili kod: [bonus/challenge-8-yavas-latency](https://github.com/beyzayilmaz1/konsalt-challenge-06-mini-envanter-api/tree/bonus/challenge-8-yavas-latency).
+
 ### Bonus: Yeni hedef ekleme
 
 `hedefler.json` dosyasına yeni bir obje ekleyin, dashboard'u yenileyin — kod değişikliği gerekmez.
