@@ -34,6 +34,8 @@ Tarayıcı açılır: http://localhost:8501
 
 - [x] Görev 1: `check()` health check fonksiyonu
 - [x] Görev 2: Streamlit durum kartları
-- [ ] Görev 3: Tarihçe + çizgi grafik
+- [x] Görev 3: Tarihçe (`tarihce.csv`) + çizgi grafik
 - [ ] Görev 4: Otomatik yenileme + alarm
 - [ ] Bonus: hedefler.json, uptime, YAVAS yakalama
+
+> `tarihce.csv` çalışma zamanında oluşur; git'e eklenmez. Grafikte çizgi görmek için birkaç kez **Şimdi Yenile** basın.

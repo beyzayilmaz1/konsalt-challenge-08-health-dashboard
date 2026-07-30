@@ -1,10 +1,11 @@
-"""Sağlık Dashboard'u — Challenge 8 Görev 2: durum kartları."""
+"""Sağlık Dashboard'u — Challenge 8: kartlar + tarihçe grafikleri."""
 
 from datetime import datetime
 
+import pandas as pd
 import streamlit as st
 
-from health_check import check
+from health_check import check, kaydet, tarihce_oku
 
 HEDEFLER = [
     {"ad": "Mini Envanter API", "url": "http://127.0.0.1:8000/health"},
@@ -38,6 +39,8 @@ sutunlar = st.columns(len(HEDEFLER))
 
 for sutun, hedef in zip(sutunlar, HEDEFLER):
     sonuc = check(hedef["url"])
+    kaydet(hedef["ad"], sonuc)
+
     ikon = DURUM_IKON.get(sonuc["durum"], "❓")
     sure = sonuc["sure_ms"]
     sure_yazi = f"{sure} ms" if sure is not None else "—"
@@ -48,3 +51,25 @@ for sutun, hedef in zip(sutunlar, HEDEFLER):
         st.metric(label="Yanıt süresi", value=sure_yazi)
         kod = sonuc["kod"]
         st.caption(f"HTTP: {kod if kod is not None else 'yok'} · {kontrol_saati}")
+
+# --- Görev 3: yanıt süresi tarihçesi ---
+st.divider()
+st.subheader("Yanıt süresi tarihçesi")
+
+kayitlar = tarihce_oku()
+if not kayitlar:
+    st.info("Henüz kayıt yok. Yenile butonuna basarak kontrol biriktirin.")
+else:
+    df = pd.DataFrame(kayitlar)
+    df["sure_ms"] = pd.to_numeric(df["sure_ms"], errors="coerce")
+
+    grafik_sutunlari = st.columns(2)
+    for i, hedef in enumerate(HEDEFLER):
+        hedef_df = df[df["hedef"] == hedef["ad"]].copy()
+        with grafik_sutunlari[i % 2]:
+            st.markdown(f"**{hedef['ad']}**")
+            if hedef_df.empty or hedef_df["sure_ms"].isna().all():
+                st.caption("Çizilecek süre verisi yok (ULAŞILAMIYOR kayıtları süre tutmaz).")
+            else:
+                cizim = hedef_df[["zaman", "sure_ms"]].dropna().set_index("zaman")
+                st.line_chart(cizim)
